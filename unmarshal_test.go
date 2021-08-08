@@ -49,7 +49,7 @@ func Test_Unmarshall_002(t *testing.T) {
 		a["uint32"] = uint32(i)
 		a["int64"] = int64(i)
 		a["uint64"] = uint64(i)
-		if err := marshaler.UnmarshalStruct(a, &b, "yaml"); err != nil {
+		if err := marshaler.UnmarshalStruct(a, &b, "yaml", nil); err != nil {
 			t.Fatal(err)
 		}
 		if b.A != i {
@@ -94,7 +94,7 @@ func Test_Unmarshall_003(t *testing.T) {
 		T bool `yaml:"true"`
 		F bool `yaml:"false"`
 	}
-	if err := marshaler.UnmarshalStruct(a, &b, "yaml"); err != nil {
+	if err := marshaler.UnmarshalStruct(a, &b, "yaml", nil); err != nil {
 		t.Fatal(err)
 	}
 	if b.T != true {
@@ -111,13 +111,13 @@ func Test_Unmarshall_004(t *testing.T) {
 		"float64": float64(0),
 	}
 	var b struct {
-		Float32 float32
-		Float64 float64
+		Float32 float32 `yaml:"float32"`
+		Float64 float64 `yaml:"float64"`
 	}
 	for i := 0; i < 100; i++ {
 		a["float32"] = rand.Float32()
 		a["float64"] = rand.Float64()
-		if err := marshaler.UnmarshalStruct(a, &b, "yaml"); err != nil {
+		if err := marshaler.UnmarshalStruct(a, &b, "yaml", nil); err != nil {
 			t.Fatal(err)
 		}
 		if b.Float32 != a["float32"] {
@@ -135,10 +135,10 @@ func Test_Unmarshall_005(t *testing.T) {
 		"nil":     []string{},
 	}
 	var b struct {
-		Strings []string
-		Nil     []string
+		Strings []string `yaml:"strings"`
+		Nil     []string `yaml:"nil"`
 	}
-	if err := marshaler.UnmarshalStruct(a, &b, "yaml"); err != nil {
+	if err := marshaler.UnmarshalStruct(a, &b, "yaml", nil); err != nil {
 		t.Fatal(err)
 	}
 	if !stringSliceEqual(b.Strings, a["strings"].([]string)) {
@@ -152,14 +152,14 @@ func Test_Unmarshall_005(t *testing.T) {
 func Test_Unmarshall_006(t *testing.T) {
 	a := url.Values{}
 	var b struct {
-		Q []string
+		Q []string `yaml:"q"`
 	}
 	for i := 0; i < 100; i++ {
 		a.Add("q", fmt.Sprint(i))
-		if err := marshaler.UnmarshalStruct(a, &b, ""); err != nil {
+		if err := marshaler.UnmarshalStruct(a, &b, "yaml", nil); err != nil {
 			t.Fatal(err)
 		} else if stringSliceEqual(a["q"], b.Q) == false {
-			t.Error("a != b")
+			t.Error("a != b", a, b)
 		}
 	}
 }
@@ -167,13 +167,13 @@ func Test_Unmarshall_006(t *testing.T) {
 func Test_Unmarshall_007(t *testing.T) {
 	a := url.Values{}
 	var b struct {
-		Q string
+		Q []string `yaml:"q"`
 	}
 	for i := 0; i < 100; i++ {
 		a.Add("q", fmt.Sprint(i))
-		if err := marshaler.UnmarshalStruct(a, &b, ""); err != nil {
+		if err := marshaler.UnmarshalStruct(a, &b, "yaml", nil); err != nil {
 			t.Fatal(err)
-		} else if stringSliceEqual(a["q"], []string{b.Q}) == false {
+		} else if stringSliceEqual(a["q"], b.Q) == false {
 			t.Error("a != b")
 		}
 	}

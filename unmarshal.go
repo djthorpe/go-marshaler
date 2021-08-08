@@ -9,10 +9,17 @@ import (
 )
 
 ///////////////////////////////////////////////////////////////////////////////
+// TYPES
+
+// Custom function for converting a scalar value, the first argument is
+// the source value and the second argument is the type of the destination
+type UnmarshalScalarFunc func(reflect.Value, reflect.Type) (reflect.Value, error)
+
+///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
 
 // UnmarshalStruct will decode src into dest field names identified by tag
-func UnmarshalStruct(src, dst interface{}, name string) error {
+func UnmarshalStruct(src, dst interface{}, name string, fn UnmarshalScalarFunc) error {
 	s := reflect.ValueOf(src)
 	d := reflect.ValueOf(dst)
 
@@ -33,7 +40,7 @@ func UnmarshalStruct(src, dst interface{}, name string) error {
 	for i := 0; i < d.NumField(); i++ {
 		if tag := tagName(d.Type().Field(i), name); tag != "" {
 			if v := s.MapIndex(reflect.ValueOf(tag)); v.IsValid() && !v.IsNil() {
-				if err := unmarshalValue(v, d.Field(i)); err != nil {
+				if err := unmarshalValue(v, d.Field(i), fn); err != nil {
 					result = multierror.Append(result, err)
 				}
 			}
@@ -66,21 +73,42 @@ func tagName(field reflect.StructField, tagName string) string {
 
 // unmarshalValue recursively unmarshals src into dest and returns any errors if src is
 // not assignable into dest
-func unmarshalValue(src, dest reflect.Value) error {
+func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 	switch src.Kind() {
 	case reflect.Ptr:
 		src := src.Elem()
 		if src.IsValid() {
 			dest.Set(reflect.New(src.Type()))
-			return unmarshalValue(src, dest.Elem())
+			return unmarshalValue(src, dest.Elem(), fn)
 		}
 	case reflect.Interface:
 		src := src.Elem()
-		copyValue := reflect.New(src.Type()).Elem()
-		if err := unmarshalValue(src, copyValue); err != nil {
-			return err
+		recursive := true
+		if fn != nil {
+			if v, err := fn(src, dest.Type()); err != nil {
+				return err
+			} else if v.IsValid() {
+				recursive = false
+				src = v
+			}
 		}
-		dest.Set(copyValue)
+
+		// Check appropriate type
+		if src.Kind() != dest.Kind() {
+			return ErrBadParameter.With("Unmarshal: ", "Destination is ", dest.Kind(), " but expected ", src.Kind())
+		}
+
+		// Make copy of src if recursive, or set otherwise
+		if recursive {
+			copyValue := reflect.New(src.Type()).Elem()
+			if err := unmarshalValue(src, copyValue, fn); err != nil {
+				return err
+			}
+			dest.Set(copyValue)
+		} else {
+			dest.Set(src)
+		}
+
 	case reflect.Map:
 		// Make a new map
 		dest.Set(reflect.MakeMap(src.Type()))
@@ -90,7 +118,7 @@ func unmarshalValue(src, dest reflect.Value) error {
 			v := src.MapIndex(key)
 			if !v.IsNil() {
 				copy := reflect.New(v.Type()).Elem()
-				if err := unmarshalValue(v, copy); err != nil {
+				if err := unmarshalValue(v, copy, fn); err != nil {
 					return err
 				}
 				dest.SetMapIndex(key, copy)
@@ -98,7 +126,7 @@ func unmarshalValue(src, dest reflect.Value) error {
 		}
 	case reflect.Struct:
 		for i := 0; i < src.NumField(); i += 1 {
-			if err := unmarshalValue(src.Field(i), dest.Field(i)); err != nil {
+			if err := unmarshalValue(src.Field(i), dest.Field(i), fn); err != nil {
 				return err
 			}
 		}
@@ -113,14 +141,24 @@ func unmarshalValue(src, dest reflect.Value) error {
 
 		// Copy source elements
 		for i := 0; i < src.Len(); i++ {
-			if err := unmarshalValue(src.Index(i), dest.Index(i)); err != nil {
+			if err := unmarshalValue(src.Index(i), dest.Index(i), fn); err != nil {
 				return err
 			}
 		}
 	default:
+		if fn != nil {
+			if v, err := fn(src, dest.Type()); err != nil {
+				return err
+			} else if v.IsValid() {
+				src = v
+			}
+		}
+		// Check appropriate type
 		if src.Kind() != dest.Kind() {
 			return ErrBadParameter.With("Unmarshal: ", "Destination is ", dest.Kind(), " but expected ", src.Kind())
 		}
+
+		// Set scalar
 		dest.Set(src)
 	}
 
