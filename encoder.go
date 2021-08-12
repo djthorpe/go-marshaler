@@ -16,6 +16,7 @@ type Encoder struct {
 type Field struct {
 	Index int
 	Name  string
+	Type  reflect.Type
 	Tags  []string
 }
 
@@ -61,8 +62,9 @@ func reflectField(field reflect.StructField, name string) *Field {
 		return nil
 	}
 
-	// Set index
+	// Set index and type
 	result.Index = field.Index[0]
+	result.Type = field.Type
 
 	// Set the field name
 	tags := strings.Split(field.Tag.Get(name), ",")
