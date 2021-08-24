@@ -17,6 +17,7 @@ type Field struct {
 	Index int
 	Name  string
 	Type  reflect.Type
+	Value reflect.Value
 	Tags  []string
 }
 
@@ -46,7 +47,7 @@ func (this *Encoder) Reflect(v interface{}) []*Field {
 	// Enumerate struct fields
 	var result []*Field
 	for i := 0; i < rv.Type().NumField(); i++ {
-		result = append(result, reflectField(rv.Type().Field(i), this.name))
+		result = append(result, reflectField(rv.Type().Field(i), rv.Field(i), this.name))
 	}
 	return result
 }
@@ -54,7 +55,7 @@ func (this *Encoder) Reflect(v interface{}) []*Field {
 ///////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS
 
-func reflectField(field reflect.StructField, name string) *Field {
+func reflectField(field reflect.StructField, value reflect.Value, name string) *Field {
 	var result Field
 
 	// Private or anonymous fields not supported
@@ -62,9 +63,10 @@ func reflectField(field reflect.StructField, name string) *Field {
 		return nil
 	}
 
-	// Set index and type
+	// Set index, type and value
 	result.Index = field.Index[0]
 	result.Type = field.Type
+	result.Value = value
 
 	// Set the field name
 	tags := strings.Split(field.Tag.Get(name), ",")
