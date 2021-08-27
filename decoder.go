@@ -1,7 +1,9 @@
 package marshaler
 
 import (
+	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,8 +20,12 @@ type Decoder struct {
 // GLOBALS
 
 var (
-	nilValue = reflect.ValueOf(nil)
-	timeType = reflect.TypeOf(time.Time{})
+	nilValue     = reflect.ValueOf(nil)
+	timeType     = reflect.TypeOf(time.Time{})
+	durationType = reflect.TypeOf(time.Duration(0))
+	int64Type    = reflect.TypeOf(int64(0))
+	uint64Type   = reflect.TypeOf(uint64(0))
+	stringType   = reflect.TypeOf(string(""))
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -67,6 +73,35 @@ func ConvertTime(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
 	} else {
 		return nilValue, err
 	}
+}
+
+// ConvertDuration returns time.Duration from integer, string or time.Duration
+func ConvertDuration(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
+	// Skip this hook if type is not time type
+	if dest != durationType {
+		return nilValue, nil
+	}
+	// Return value is source is already time type
+	if v.Type() == durationType {
+		return v, nil
+	}
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v := v.Convert(int64Type).Int()
+		return reflect.ValueOf(time.Duration(v) * time.Second), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v := v.Convert(uint64Type).Uint()
+		return reflect.ValueOf(time.Duration(v) * time.Second), nil
+	case reflect.String:
+		if v_, err := time.ParseDuration(v.String()); err == nil {
+			return reflect.ValueOf(v_), nil
+		} else if v_, err := strconv.ParseUint(v.String(), 0, 64); err == nil {
+			return reflect.ValueOf(time.Duration(v_) * time.Second), nil
+		} else {
+			return nilValue, fmt.Errorf("cannot convert %q to time.Duration", v.String())
+		}
+	}
+	return nilValue, fmt.Errorf("cannot convert %q to time.Duration", v.Kind())
 }
 
 ///////////////////////////////////////////////////////////////////////////////

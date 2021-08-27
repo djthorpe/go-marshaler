@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net/url"
 	"testing"
+	"time"
 
 	marshaler "github.com/djthorpe/go-marshaler"
 )
@@ -175,6 +176,97 @@ func Test_Unmarshall_007(t *testing.T) {
 			t.Fatal(err)
 		} else if stringSliceEqual(a["q"], b.Q) == false {
 			t.Error("a != b")
+		}
+	}
+}
+
+func Test_Unmarshall_008(t *testing.T) {
+	var a = map[string]interface{}{
+		"int":    int(0),
+		"uint":   uint(0),
+		"int8":   int8(0),
+		"uint8":  uint8(0),
+		"int16":  int16(0),
+		"uint16": uint16(0),
+		"int32":  int32(0),
+		"uint32": uint32(0),
+		"int64":  int64(0),
+		"uint64": uint64(0),
+		"time":   time.Duration(0) * time.Second,
+		"str1":   "0s",
+		"str2":   "0",
+	}
+	var b struct {
+		A time.Duration `yaml:"int"`
+		B time.Duration `yaml:"uint"`
+		C time.Duration `yaml:"int8"`
+		D time.Duration `yaml:"uint8"`
+		E time.Duration `yaml:"int16"`
+		F time.Duration `yaml:"uint16"`
+		G time.Duration `yaml:"int32"`
+		H time.Duration `yaml:"uint32"`
+		I time.Duration `yaml:"int64"`
+		J time.Duration `yaml:"uint64"`
+		K time.Duration `yaml:"time"`
+		L time.Duration `yaml:"str1"`
+		M time.Duration `yaml:"str2"`
+	}
+	for i := 0; i < 127; i++ {
+		v := time.Duration(i) * time.Second
+		a["int"] = i
+		a["uint"] = uint(i)
+		a["int8"] = int8(i)
+		a["uint8"] = uint8(i)
+		a["int16"] = int16(i)
+		a["uint16"] = uint16(i)
+		a["int32"] = int32(i)
+		a["uint32"] = uint32(i)
+		a["int64"] = int64(i)
+		a["uint64"] = uint64(i)
+		a["time"] = v
+		a["str1"] = fmt.Sprint(i, "s")
+		a["str2"] = fmt.Sprint(i)
+		if err := marshaler.UnmarshalStruct(a, &b, "yaml", marshaler.ConvertDuration); err != nil {
+			t.Fatal(err)
+		}
+		if b.A != v {
+			t.Errorf("int %v != %v", b.A, v)
+		}
+		if b.B != v {
+			t.Errorf("uint %v != %v", b.B, v)
+		}
+		if b.C != v {
+			t.Errorf("int8 %v != %v", b.C, v)
+		}
+		if b.D != v {
+			t.Errorf("uint8 %v != %v", b.D, v)
+		}
+		if b.E != v {
+			t.Errorf("int16 %v != %v", b.E, v)
+		}
+		if b.F != v {
+			t.Errorf("uint16 %v != %v", b.F, v)
+		}
+		if b.G != v {
+			t.Errorf("int32 %v != %v", b.G, v)
+		}
+		if b.H != v {
+			t.Errorf("uint32 %v != %v", b.H, v)
+		}
+		if b.I != v {
+			t.Errorf("int64 %v != %v", b.I, v)
+		}
+		if b.J != v {
+			t.Errorf("uint64 %v != %v", b.J, v)
+		}
+		if b.K != v {
+			t.Errorf("time %v != %v", b.K, v)
+		}
+		if b.L != v {
+			t.Errorf("str1 %v != %v", b.L, v)
+		}
+		if b.M != v {
+			t.Errorf("str2 %v != %v", b.M, v)
 		}
 	}
 }
