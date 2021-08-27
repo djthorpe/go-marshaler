@@ -77,6 +77,7 @@ func ConvertTime(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
 
 // ConvertDuration returns time.Duration from integer, string or time.Duration
 func ConvertDuration(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
+	fmt.Println("ConvertDuration", v, v.Type(), "=>", dest)
 	// Skip this hook if type is not time type
 	if dest != durationType {
 		return nilValue, nil
