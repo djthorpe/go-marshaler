@@ -94,8 +94,8 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 		}
 
 		// Check appropriate type
-		if src.Kind() != dest.Kind() {
-			return ErrBadParameter.With("Unmarshal: ", "Destination is ", dest.Kind(), " but expected ", src.Kind())
+		if src.Type() != dest.Type() {
+			return ErrBadParameter.With("Unmarshal: ", "Destination is ", dest.Type(), " but expected ", src.Type())
 		}
 
 		// Make copy of src if recursive, or set otherwise
