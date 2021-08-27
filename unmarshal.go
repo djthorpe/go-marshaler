@@ -25,14 +25,14 @@ func UnmarshalStruct(src, dst interface{}, name string, fn UnmarshalScalarFunc) 
 
 	// Destination should be a pointer to a struct
 	if d.Kind() != reflect.Ptr || d.Elem().Kind() != reflect.Struct {
-		return ErrBadParameter.With("UnmarshalStruct: Destination should be ptr to struct")
+		return ErrBadParameter.With("destination should be ptr to struct")
 	} else {
 		d = d.Elem()
 	}
 
 	// Source should be map[string]
 	if s.Kind() != reflect.Map || s.Type().Key().Kind() != reflect.String {
-		return ErrBadParameter.With("UnmarshalStruct: Source should be map[string]...")
+		return ErrBadParameter.With("source should be map[string]...")
 	}
 
 	// Unmarshal into each field
@@ -95,7 +95,7 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 
 		// Check appropriate type
 		if src.Type() != dest.Type() {
-			return ErrBadParameter.With("Unmarshal: ", "Destination is ", dest.Type(), " but expected ", src.Type())
+			return ErrBadParameter.With("destination is ", dest.Type(), " but expected ", src.Type())
 		}
 
 		// Make copy of src if recursive, or set otherwise
@@ -131,9 +131,17 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 			}
 		}
 	case reflect.Slice:
+		if fn != nil {
+			if v, err := fn(src, dest.Type()); err != nil {
+				return err
+			} else if v.IsValid() && v.Kind() != reflect.Slice {
+				return unmarshalValue(v, dest, fn)
+			}
+		}
+
 		// Check for both slices
 		if src.Kind() != dest.Kind() {
-			return ErrBadParameter.With("Unmarshal: ", "Destination is ", dest.Kind(), " but expected ", src.Kind())
+			return ErrBadParameter.With("destination is ", dest.Kind(), " but expected ", src.Kind())
 		}
 
 		// Make a new slice

@@ -1,6 +1,7 @@
 package marshaler_test
 
 import (
+	"net/url"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 type ts struct {
 	Time     time.Time     `yaml:"timestamp"`
 	Duration time.Duration `yaml:"duration"`
+	String   string        `yaml:"string"`
 }
 
 func Test_Decoder_001(t *testing.T) {
@@ -70,5 +72,19 @@ func Test_Decoder_005(t *testing.T) {
 		} else if dest.Duration != test.dest {
 			t.Fatal("Unexpected value", dest.Duration, " expected ", test.dest)
 		}
+	}
+}
+
+func Test_Decoder_006(t *testing.T) {
+	dest := ts{}
+	src := url.Values{}
+	src.Set("string", "foo")
+	src.Set("duration", "100s")
+	if err := marshaler.NewDecoder("yaml", marshaler.ConvertQueryValues, marshaler.ConvertDuration).DecodeQuery(src, &dest); err != nil {
+		t.Fatal(err)
+	} else if dest.String != src.Get("string") {
+		t.Fatal("Unexpected value", dest.String, " expected ", src.Get("string"))
+	} else if dest.Duration != 100*time.Second {
+		t.Fatal("Unexpected value", dest.Duration, " expected ", src.Get("duration"))
 	}
 }

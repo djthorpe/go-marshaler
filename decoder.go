@@ -2,6 +2,7 @@ package marshaler
 
 import (
 	"fmt"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -20,12 +21,12 @@ type Decoder struct {
 // GLOBALS
 
 var (
-	nilValue     = reflect.ValueOf(nil)
-	timeType     = reflect.TypeOf(time.Time{})
-	durationType = reflect.TypeOf(time.Duration(0))
-	int64Type    = reflect.TypeOf(int64(0))
-	uint64Type   = reflect.TypeOf(uint64(0))
-	stringType   = reflect.TypeOf(string(""))
+	nilValue        = reflect.ValueOf(nil)
+	timeType        = reflect.TypeOf(time.Time{})
+	durationType    = reflect.TypeOf(time.Duration(0))
+	int64Type       = reflect.TypeOf(int64(0))
+	uint64Type      = reflect.TypeOf(uint64(0))
+	stringSliceType = reflect.TypeOf([]string{})
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -40,7 +41,13 @@ func NewDecoder(name string, hooks ...UnmarshalScalarFunc) *Decoder {
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
 
+// Decode decodes a map[string]interface{} type
 func (this *Decoder) Decode(src map[string]interface{}, dest interface{}) error {
+	return UnmarshalStruct(src, dest, this.name, this.unmarshalscalar)
+}
+
+// DecodeQuery decodes a url.Values type
+func (this *Decoder) DecodeQuery(src url.Values, dest interface{}) error {
 	return UnmarshalStruct(src, dest, this.name, this.unmarshalscalar)
 }
 
@@ -77,7 +84,6 @@ func ConvertTime(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
 
 // ConvertDuration returns time.Duration from integer, string or time.Duration
 func ConvertDuration(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
-	fmt.Println("ConvertDuration", v, v.Type(), "=>", dest)
 	// Skip this hook if type is not time type
 	if dest != durationType {
 		return nilValue, nil
@@ -103,6 +109,26 @@ func ConvertDuration(v reflect.Value, dest reflect.Type) (reflect.Value, error) 
 		}
 	}
 	return nilValue, fmt.Errorf("cannot convert %q to time.Duration", v.Kind())
+}
+
+// ConvertQueryValues returns a value from a []string
+func ConvertQueryValues(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
+	// Skip this hook if type is not string slice type
+	if v.Type() != stringSliceType {
+		return nilValue, nil
+	}
+	// If source has length of zero return zero value
+	if v.Len() == 0 {
+		return reflect.Zero(dest), nil
+	}
+	// Source length bigger then one is not currently supported
+	if v.Len() != 1 {
+		return nilValue, fmt.Errorf("cannot convert %q to %q", v, dest)
+	} else {
+		v = v.Index(0)
+	}
+	// Return value
+	return v, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////
