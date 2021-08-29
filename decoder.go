@@ -121,14 +121,47 @@ func ConvertQueryValues(v reflect.Value, dest reflect.Type) (reflect.Value, erro
 	if v.Len() == 0 {
 		return reflect.Zero(dest), nil
 	}
-	// Source length bigger then one is not currently supported
-	if v.Len() != 1 {
-		return nilValue, fmt.Errorf("cannot convert %q to %q", v, dest)
-	} else {
-		v = v.Index(0)
+	// Support conversions to scalars and slices
+	if dest.Kind() == reflect.Slice {
+		return v, nil
+	} else if v.Len() == 1 {
+		return v.Index(0), nil
 	}
-	// Return value
-	return v, nil
+	// Cannot convert
+	return nilValue, fmt.Errorf("cannot convert %q to %q", v, dest)
+}
+
+// ConvertStringToNumber returns int, uint,float or bool from  string
+func ConvertStringToNumber(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
+	// Pass value through
+	if v.Type() == dest {
+		return v, nil
+	}
+	// Skip this hook if source is not string
+	if v.Kind() != reflect.String {
+		return nilValue, nil
+	}
+	// Convert to int, uint, float or bool
+	switch dest.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if value, err := strconv.ParseInt(v.String(), 0, 64); err == nil {
+			return reflect.ValueOf(value).Convert(dest), nil
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if value, err := strconv.ParseUint(v.String(), 0, 64); err == nil {
+			return reflect.ValueOf(value).Convert(dest), nil
+		}
+	case reflect.Float32, reflect.Float64:
+		if value, err := strconv.ParseFloat(v.String(), 64); err == nil {
+			return reflect.ValueOf(value).Convert(dest), nil
+		}
+	case reflect.Bool:
+		if value, err := strconv.ParseBool(v.String()); err == nil {
+			return reflect.ValueOf(value).Convert(dest), nil
+		}
+	}
+	// Skip
+	return nilValue, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////

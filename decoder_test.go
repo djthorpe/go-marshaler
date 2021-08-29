@@ -14,6 +14,12 @@ type ts struct {
 	String   string        `yaml:"string"`
 }
 
+type slices struct {
+	Ints    []int    `yaml:"ints"`
+	Uints   []uint   `yaml:"uints"`
+	Strings []string `yaml:"strings"`
+}
+
 func Test_Decoder_001(t *testing.T) {
 	if dec := marshaler.NewDecoder("yaml"); dec == nil {
 		t.Fatal("Unexpected nil return from NewDecoder")
@@ -86,5 +92,28 @@ func Test_Decoder_006(t *testing.T) {
 		t.Fatal("Unexpected value", dest.String, " expected ", src.Get("string"))
 	} else if dest.Duration != 100*time.Second {
 		t.Fatal("Unexpected value", dest.Duration, " expected ", src.Get("duration"))
+	}
+}
+
+func Test_Decoder_007(t *testing.T) {
+	dest := slices{}
+	src := url.Values{}
+	src.Add("ints", "1")
+	src.Add("ints", "2")
+	src.Add("ints", "3")
+	src.Add("uints", "1")
+	src.Add("uints", "2")
+	src.Add("uints", "3")
+	src.Add("strings", "1")
+	src.Add("strings", "2")
+	src.Add("strings", "3")
+	if err := marshaler.NewDecoder("yaml", marshaler.ConvertQueryValues, marshaler.ConvertStringToNumber).DecodeQuery(src, &dest); err != nil {
+		t.Fatal(err)
+	} else if len(dest.Strings) != 3 {
+		t.Fatal("Unexpected value", dest.Strings, " expected ", src["strings"])
+	} else if len(dest.Ints) != 3 {
+		t.Fatal("Unexpected value", dest.Ints, " expected ", src["ints"])
+	} else if len(dest.Uints) != 3 {
+		t.Fatal("Unexpected value", dest.Uints, " expected ", src["uints"])
 	}
 }

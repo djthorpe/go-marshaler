@@ -145,7 +145,7 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 		}
 
 		// Make a new slice
-		dest.Set(reflect.MakeSlice(src.Type(), src.Len(), src.Cap()))
+		dest.Set(reflect.MakeSlice(dest.Type(), src.Len(), src.Cap()))
 
 		// Copy source elements
 		for i := 0; i < src.Len(); i++ {
