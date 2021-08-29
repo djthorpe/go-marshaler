@@ -139,8 +139,8 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 			}
 		}
 
-		// Check for both slices
-		if src.Kind() != dest.Kind() {
+		// Check for both slices, source can be []interface{}
+		if src.Kind() != dest.Kind() && src.Type() != interfaceSliceType {
 			return ErrBadParameter.With("destination is ", dest.Kind(), " but expected ", src.Kind())
 		}
 

@@ -21,12 +21,13 @@ type Decoder struct {
 // GLOBALS
 
 var (
-	nilValue        = reflect.ValueOf(nil)
-	timeType        = reflect.TypeOf(time.Time{})
-	durationType    = reflect.TypeOf(time.Duration(0))
-	int64Type       = reflect.TypeOf(int64(0))
-	uint64Type      = reflect.TypeOf(uint64(0))
-	stringSliceType = reflect.TypeOf([]string{})
+	nilValue           = reflect.ValueOf(nil)
+	timeType           = reflect.TypeOf(time.Time{})
+	durationType       = reflect.TypeOf(time.Duration(0))
+	int64Type          = reflect.TypeOf(int64(0))
+	uint64Type         = reflect.TypeOf(uint64(0))
+	stringSliceType    = reflect.TypeOf([]string{})
+	interfaceSliceType = reflect.TypeOf([]interface{}{})
 )
 
 ///////////////////////////////////////////////////////////////////////////////
