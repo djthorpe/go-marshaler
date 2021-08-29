@@ -83,6 +83,12 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 		}
 	case reflect.Interface:
 		src := src.Elem()
+
+		// Call again on src.Elem
+		if src.Kind() == reflect.Slice {
+			return unmarshalValue(src, dest, fn)
+		}
+
 		recursive := true
 		if fn != nil {
 			if v, err := fn(src, dest.Type()); err != nil {
@@ -108,7 +114,6 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 		} else {
 			dest.Set(src)
 		}
-
 	case reflect.Map:
 		// Make a new map
 		dest.Set(reflect.MakeMap(src.Type()))
@@ -140,8 +145,8 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 		}
 
 		// Check for both slices, source can be []interface{}
-		if src.Kind() != dest.Kind() && src.Type() != interfaceSliceType {
-			return ErrBadParameter.With("destination is ", dest.Kind(), " but expected ", src.Kind())
+		if src.Kind() != dest.Kind() {
+			return ErrBadParameter.With("destination is ", dest.Type(), " but expected ", src.Type())
 		}
 
 		// Make a new slice
@@ -163,7 +168,7 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 		}
 		// Check appropriate type
 		if src.Kind() != dest.Kind() {
-			return ErrBadParameter.With("Unmarshal: ", "Destination is ", dest.Kind(), " but expected ", src.Kind())
+			return ErrBadParameter.With("destination is ", dest.Type(), " but expected ", src.Type())
 		}
 
 		// Set scalar

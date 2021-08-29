@@ -271,6 +271,20 @@ func Test_Unmarshall_008(t *testing.T) {
 	}
 }
 
+func Test_Unmarshall_009(t *testing.T) {
+	var a = map[string]interface{}{
+		"slice": []interface{}{"a", "b", "c"},
+	}
+	var b struct {
+		Slice []string `yaml:"slice"`
+	}
+	if err := marshaler.UnmarshalStruct(a, &b, "yaml", nil); err != nil {
+		t.Fatal(err)
+	} else if stringSliceEqual([]string{"a", "b", "c"}, b.Slice) == false {
+		t.Error("a != b")
+	}
+}
+
 func stringSliceEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
