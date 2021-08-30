@@ -305,6 +305,38 @@ func Test_Unmarshall_011(t *testing.T) {
 	}
 }
 
+func Test_Unmarshall_012(t *testing.T) {
+	var src = map[string]string{
+		"a": "1",
+		"b": "2",
+		"c": "3",
+	}
+	var dest1 = map[string]string{}
+	var dest2 = map[string]int{}
+	var dest3 map[string]float32
+	if err := marshaler.UnmarshalStruct(src, &dest1, "yaml", nil); err != nil {
+		t.Fatal(err)
+	} else if len(src) != len(dest1) {
+		t.Error("src != dest1", src, dest1)
+	} else {
+		t.Log(src, dest1)
+	}
+	if err := marshaler.UnmarshalStruct(src, &dest2, "yaml", marshaler.ConvertStringToNumber); err != nil {
+		t.Fatal(err)
+	} else if len(src) != len(dest2) {
+		t.Error("src != dest2", src, dest2)
+	} else {
+		t.Log(src, dest2)
+	}
+	if err := marshaler.UnmarshalStruct(src, &dest3, "yaml", marshaler.ConvertStringToNumber); err != nil {
+		t.Fatal(err)
+	} else if len(src) != len(dest3) {
+		t.Error("src != dest3", src, dest3)
+	} else {
+		t.Log(src, dest3)
+	}
+}
+
 func stringSliceEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

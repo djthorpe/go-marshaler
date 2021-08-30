@@ -43,28 +43,48 @@ func UnmarshalStruct(src, dst interface{}, name string, fn UnmarshalScalarFunc) 
 	s := reflect.ValueOf(src)
 	d := reflect.ValueOf(dst)
 
-	// Destination should be a pointer to a struct
-	if d.Kind() != reflect.Ptr || d.Elem().Kind() != reflect.Struct {
-		return ErrBadParameter.With("destination should be ptr to struct")
-	} else {
-		d = d.Elem()
-	}
-
 	// Source should be map[string]
 	if s.Kind() != reflect.Map || s.Type().Key().Kind() != reflect.String {
 		return ErrBadParameter.With("source should be map[string]...")
 	}
 
-	// Unmarshal into each field
+	// Destination should be a pointer to a struct
+	if d.Kind() != reflect.Ptr {
+		return ErrBadParameter.With("destination should be ptr to struct or map")
+	} else {
+		d = d.Elem()
+	}
+
 	var result error
-	for i := 0; i < d.NumField(); i++ {
-		if tag := tagName(d.Type().Field(i), name); tag != "" {
-			if v := s.MapIndex(reflect.ValueOf(tag)); v.IsValid() && !v.IsNil() {
-				if err := unmarshalValue(v, d.Field(i), fn); err != nil {
-					result = multierror.Append(result, err)
+	switch d.Kind() {
+	case reflect.Struct:
+		// Unmarshal into each field
+		for i := 0; i < d.NumField(); i++ {
+			if tag := tagName(d.Type().Field(i), name); tag != "" {
+				if v := s.MapIndex(reflect.ValueOf(tag)); v.IsValid() && !v.IsNil() {
+					if err := unmarshalValue(v, d.Field(i), fn); err != nil {
+						result = multierror.Append(result, err)
+					}
 				}
 			}
 		}
+	case reflect.Map:
+		// Check for unallocated map
+		if d.IsNil() {
+			d.Set(reflect.MakeMap(d.Type()))
+		}
+		// Unmarshal into map
+		iter := s.MapRange()
+		for iter.Next() {
+			dv := reflect.New(d.Type().Elem()).Elem()
+			if err := unmarshalValue(iter.Value(), dv, fn); err != nil {
+				result = multierror.Append(result, err)
+			} else {
+				d.SetMapIndex(iter.Key(), dv)
+			}
+		}
+	default:
+		return ErrBadParameter.With("destination should be ptr to struct or map")
 	}
 
 	// Return any errors
