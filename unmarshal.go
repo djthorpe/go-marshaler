@@ -18,6 +18,26 @@ type UnmarshalScalarFunc func(reflect.Value, reflect.Type) (reflect.Value, error
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
 
+// UnmarshalSlice will decode src into a slice
+func UnmarshalSlice(src, dst interface{}, fn UnmarshalScalarFunc) error {
+	s := reflect.ValueOf(src)
+	d := reflect.ValueOf(dst)
+	if d.Kind() != reflect.Ptr {
+		return ErrBadParameter.With("destination should be ptr to slice")
+	} else {
+		d = d.Elem()
+	}
+
+	// Check source and destination
+	if s.Kind() != reflect.Slice {
+		return ErrBadParameter.With("source should be a slice")
+	} else if d.Kind() != reflect.Slice {
+		return ErrBadParameter.With("destination should be a slice")
+	}
+
+	return unmarshalValue(s, d, fn)
+}
+
 // UnmarshalStruct will decode src into dest field names identified by tag
 func UnmarshalStruct(src, dst interface{}, name string, fn UnmarshalScalarFunc) error {
 	s := reflect.ValueOf(src)
@@ -127,12 +147,6 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 					return err
 				}
 				dest.SetMapIndex(key, copy)
-			}
-		}
-	case reflect.Struct:
-		for i := 0; i < src.NumField(); i += 1 {
-			if err := unmarshalValue(src.Field(i), dest.Field(i), fn); err != nil {
-				return err
 			}
 		}
 	case reflect.Slice:

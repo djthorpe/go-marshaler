@@ -43,8 +43,18 @@ func NewDecoder(name string, hooks ...UnmarshalScalarFunc) *Decoder {
 // PUBLIC METHODS
 
 // Decode decodes a map[string]interface{} type
-func (this *Decoder) Decode(src map[string]interface{}, dest interface{}) error {
-	return UnmarshalStruct(src, dest, this.name, this.unmarshalscalar)
+func (this *Decoder) Decode(src, dest interface{}) error {
+	if src == nil {
+		return ErrBadParameter.With("Decode: nil value")
+	}
+	switch kind := reflect.ValueOf(src).Kind(); kind {
+	case reflect.Map:
+		return UnmarshalStruct(src, dest, this.name, this.unmarshalscalar)
+	case reflect.Slice:
+		return UnmarshalSlice(src, dest, this.unmarshalscalar)
+	default:
+		return ErrBadParameter.With("Decode: unable to decode ", kind)
+	}
 }
 
 // DecodeQuery decodes a url.Values type

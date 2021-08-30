@@ -285,6 +285,26 @@ func Test_Unmarshall_009(t *testing.T) {
 	}
 }
 
+func Test_Unmarshall_010(t *testing.T) {
+	var src = []string{"a", "b", "c"}
+	var dest = []string{}
+	if err := marshaler.UnmarshalSlice(src, &dest, nil); err != nil {
+		t.Fatal(err)
+	} else if stringSliceEqual(src, dest) == false {
+		t.Error("src != dest")
+	}
+}
+
+func Test_Unmarshall_011(t *testing.T) {
+	var src = []string{"1", "2", "3", "4"}
+	var dest = []uint{}
+	if err := marshaler.UnmarshalSlice(src, &dest, marshaler.ConvertStringToNumber); err != nil {
+		t.Fatal(err)
+	} else if fmt.Sprint(src) != fmt.Sprint(dest) {
+		t.Error("src != dest", src, dest)
+	}
+}
+
 func stringSliceEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
