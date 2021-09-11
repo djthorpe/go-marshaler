@@ -2,6 +2,7 @@ package marshaler
 
 import (
 	"fmt"
+	"math"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -24,10 +25,13 @@ var (
 	nilValue           = reflect.ValueOf(nil)
 	timeType           = reflect.TypeOf(time.Time{})
 	durationType       = reflect.TypeOf(time.Duration(0))
+	intType            = reflect.TypeOf(int(0))
+	uintType           = reflect.TypeOf(uint(0))
 	int64Type          = reflect.TypeOf(int64(0))
 	uint64Type         = reflect.TypeOf(uint64(0))
 	stringSliceType    = reflect.TypeOf([]string{})
 	interfaceSliceType = reflect.TypeOf([]interface{}{})
+	mapInterfaceType   = reflect.TypeOf(map[string]interface{}{})
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -142,7 +146,70 @@ func ConvertQueryValues(v reflect.Value, dest reflect.Type) (reflect.Value, erro
 	return nilValue, fmt.Errorf("cannot convert %q to %q", v, dest)
 }
 
-// ConvertStringToNumber returns int, uint,float or bool from  string
+// ConvertIntUint allows conversion from int value to a different int value,
+// and uint value to a different uint value
+func ConvertIntUint(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
+	// Skip this hook if type is not int or uint
+	if v.Type() != intType && v.Type() != uintType {
+		return nilValue, nil
+	}
+	// No conversion needed if destination is int or uint
+	if v.Type() == dest {
+		return v, nil
+	}
+	// Skip if can't convert
+	if v.CanConvert(dest) == false {
+		return nilValue, nil
+	}
+	// Check for bounds
+	switch dest.Kind() {
+	case reflect.Int, reflect.Uint, reflect.Int64, reflect.Uint64:
+		if v.CanConvert(dest) {
+			return v.Convert(dest), nil
+		}
+	case reflect.Int8:
+		if v.Int() >= math.MinInt8 && v.Int() <= math.MaxInt8 {
+			return v.Convert(dest), nil
+		} else {
+			return nilValue, fmt.Errorf("value %v out of bounds for %v", v, dest)
+		}
+	case reflect.Uint8:
+		if v.Uint() <= math.MaxUint8 {
+			return v.Convert(dest), nil
+		} else {
+			return nilValue, fmt.Errorf("value %v out of bounds for %v", v, dest)
+		}
+	case reflect.Int16:
+		if v.Int() >= math.MinInt16 && v.Int() <= math.MaxInt16 {
+			return v.Convert(dest), nil
+		} else {
+			return nilValue, fmt.Errorf("value %v out of bounds for %v", v, dest)
+		}
+	case reflect.Uint16:
+		if v.Uint() <= math.MaxUint16 {
+			return v.Convert(dest), nil
+		} else {
+			return nilValue, fmt.Errorf("value %v out of bounds for %v", v, dest)
+		}
+	case reflect.Int32:
+		if v.Int() >= math.MinInt32 && v.Int() <= math.MaxInt32 {
+			return v.Convert(dest), nil
+		} else {
+			return nilValue, fmt.Errorf("value %v out of bounds for %v", v, dest)
+		}
+	case reflect.Uint32:
+		if v.Uint() <= math.MaxUint32 {
+			return v.Convert(dest), nil
+		} else {
+			return nilValue, fmt.Errorf("value %v out of bounds for %v", v, dest)
+		}
+	}
+
+	// Cannot convert
+	return nilValue, fmt.Errorf("cannot convert %q to %q", v.Type(), dest)
+}
+
+// ConvertStringToNumber returns int, uint,float or bool from string
 func ConvertStringToNumber(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
 	// Pass value through
 	if v.Type() == dest {
@@ -173,6 +240,35 @@ func ConvertStringToNumber(v reflect.Value, dest reflect.Type) (reflect.Value, e
 	}
 	// Skip
 	return nilValue, nil
+}
+
+// ConvertMapInterface returns map[string]<type> from map[string]interface{} when all types
+// within the interface match the destination type
+func ConvertMapInterface(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
+	// Pass value through
+	if v.Type() == dest {
+		return v, nil
+	}
+	// Skip this hook if source is not map[string]interface{}
+	if v.Type() != mapInterfaceType {
+		return nilValue, nil
+	}
+	// Iterate through types in source map, skip if any type is not the same as destination type
+	d := reflect.MakeMap(dest)
+	for _, key := range v.MapKeys() {
+		elem := v.MapIndex(key)
+		if elem.Kind() == reflect.Interface && elem.CanInterface() {
+			elem = reflect.ValueOf(elem.Interface())
+		}
+		if elem.Type() != dest.Elem() {
+			return nilValue, fmt.Errorf("value of type %v in map cannot be converted to %v", elem.Type(), dest.Elem())
+		} else {
+			d.SetMapIndex(key, elem)
+		}
+	}
+
+	// Return converted map
+	return d, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -117,3 +117,33 @@ func Test_Decoder_007(t *testing.T) {
 		t.Fatal("Unexpected value", dest.Uints, " expected ", src["uints"])
 	}
 }
+
+func Test_Decoder_008(t *testing.T) {
+	src := map[string]interface{}{
+		"A": int(100),
+		"B": uint(255),
+	}
+	dest := struct {
+		A int64
+		B uint8
+	}{}
+	if err := marshaler.NewDecoder("yaml", marshaler.ConvertIntUint).Decode(src, &dest); err != nil {
+		t.Fatal(err)
+	} else {
+		t.Logf("%+v => %+v", src, dest)
+	}
+}
+
+func Test_Decoder_009(t *testing.T) {
+	src := map[string]interface{}{
+		"A": map[string]interface{}{"XX": 1, "YY": 2},
+	}
+	dest := struct {
+		A map[string]int
+	}{}
+	if err := marshaler.NewDecoder("yaml", marshaler.ConvertMapInterface).Decode(src, &dest); err != nil {
+		t.Fatal(err)
+	} else {
+		t.Logf("%+v => %+v", src, dest)
+	}
+}
