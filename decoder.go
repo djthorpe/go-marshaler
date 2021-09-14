@@ -279,7 +279,7 @@ func (this *Decoder) unmarshalscalar(v reflect.Value, dest reflect.Type) (reflec
 		if value, err := hook(v, dest); err != nil {
 			return nilValue, err
 		} else if value.IsValid() {
-			return value, nil
+			v = value
 		}
 	}
 	return v, nil
