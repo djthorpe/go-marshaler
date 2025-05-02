@@ -1,11 +1,10 @@
 package marshaler
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 	"unicode"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -55,17 +54,35 @@ func UnmarshalStruct(src, dst interface{}, name string, fn UnmarshalScalarFunc) 
 		d = d.Elem()
 	}
 
+	return unmarshalStruct(s, d, name, fn)
+}
+
+func unmarshalStruct(s, d reflect.Value, name string, fn UnmarshalScalarFunc) error {
 	var result error
 	switch d.Kind() {
 	case reflect.Struct:
 		// Unmarshal into each field
-		for i := 0; i < d.NumField(); i++ {
-			if tag := tagName(d.Type().Field(i), name); tag != "" {
-				if v := s.MapIndex(reflect.ValueOf(tag)); v.IsValid() && !v.IsNil() {
-					if err := unmarshalValue(v, d.Field(i), fn); err != nil {
-						result = multierror.Append(result, err)
-					}
-				}
+		fields := reflect.VisibleFields(d.Type())
+		for _, field := range fields {
+			tag := tagName(field, name)
+			if tag == "" {
+				continue
+			}
+
+			// Recurse into anonymous fields
+			if field.Anonymous {
+				continue
+			}
+
+			// Get source value
+			v := s.MapIndex(reflect.ValueOf(tag))
+			if !v.IsValid() {
+				continue
+			}
+
+			// Unmarshal into field
+			if err := unmarshalValue(v, d.FieldByIndex(field.Index), fn); err != nil {
+				result = errors.Join(result, err)
 			}
 		}
 	case reflect.Map:
@@ -78,7 +95,7 @@ func UnmarshalStruct(src, dst interface{}, name string, fn UnmarshalScalarFunc) 
 		for iter.Next() {
 			dv := reflect.New(d.Type().Elem()).Elem()
 			if err := unmarshalValue(iter.Value(), dv, fn); err != nil {
-				result = multierror.Append(result, err)
+				result = errors.Join(result, err)
 			} else {
 				d.SetMapIndex(iter.Key(), dv)
 			}

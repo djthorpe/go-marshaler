@@ -337,6 +337,32 @@ func Test_Unmarshall_012(t *testing.T) {
 	}
 }
 
+func Test_Unmarshall_013(t *testing.T) {
+	type A struct {
+		FieldA int `yaml:"a"`
+	}
+	type B struct {
+		FieldB int `yaml:"b"`
+	}
+	var dest struct {
+		A
+		B
+		FieldC int `yaml:"c"`
+	}
+	var src = map[string]string{
+		"a": "55",
+		"b": "66",
+		"c": "77",
+	}
+	if err := marshaler.UnmarshalStruct(src, &dest, "yaml", marshaler.ConvertStringToNumber); err != nil {
+		t.Fatal(err)
+	} else if dest.FieldA != 55 || dest.FieldB != 66 || dest.FieldC != 77 {
+		t.Error("src != dest", src, dest)
+	} else {
+		t.Log(src, dest)
+	}
+}
+
 func stringSliceEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
