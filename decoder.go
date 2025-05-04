@@ -48,6 +48,7 @@ func NewDecoder(name string, hooks ...UnmarshalScalarFunc) *Decoder {
 
 // Decode decodes a map[string]interface{} type
 func (this *Decoder) Decode(src, dest interface{}) error {
+
 	if src == nil {
 		return ErrBadParameter.With("Decode: nil value")
 	}
@@ -158,7 +159,7 @@ func ConvertIntUint(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
 		return v, nil
 	}
 	// Skip if can't convert
-	if v.CanConvert(dest) == false {
+	if !v.CanConvert(dest) {
 		return nilValue, nil
 	}
 	// Check for bounds
@@ -275,6 +276,9 @@ func ConvertMapInterface(v reflect.Value, dest reflect.Type) (reflect.Value, err
 // PRIVATE METHODS
 
 func (this *Decoder) unmarshalscalar(v reflect.Value, dest reflect.Type) (reflect.Value, error) {
+	if !v.IsValid() {
+		return nilValue, nil
+	}
 	for _, hook := range this.hooks {
 		if value, err := hook(v, dest); err != nil {
 			return nilValue, err

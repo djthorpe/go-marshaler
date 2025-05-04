@@ -156,6 +156,11 @@ func unmarshalValue(src, dest reflect.Value, fn UnmarshalScalarFunc) error {
 			}
 		}
 
+		// Bail if not valid
+		if !src.IsValid() {
+			return nil
+		}
+
 		// Check appropriate type
 		if src.Type() != dest.Type() {
 			return ErrBadParameter.With("destination is ", dest.Type(), " but expected ", src.Type())
